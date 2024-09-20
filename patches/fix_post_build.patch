@@ -1,0 +1,30 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 28746cadb..2a3c967b6 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -190,12 +190,8 @@ if (WIN32)
+             file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${CONF}" WIN_CONF_OUTPUT_DIR)
+             file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/${CONF}/resources" WIN_RESOURCES_SYMLINK)
+             add_custom_command(TARGET PrusaSlicer POST_BUILD
+-                COMMAND if exist "${WIN_CONF_OUTPUT_DIR}" "("
+-                        if not exist "${WIN_RESOURCES_SYMLINK}" "("
+-                            mklink /J "${WIN_RESOURCES_SYMLINK}" "${SLIC3R_RESOURCES_DIR_WIN}"
+-                        ")"
+-                    ")"
+-                COMMENT "Symlinking the resources directory into the build tree"
++                COMMENT robocopy "${SLIC3R_RESOURCES_DIR_WIN}" "${WIN_RESOURCES_SYMLINK}" /E
++                COMMENT "Copying the resources directory into the build tree"
+                 VERBATIM
+             )
+ 
+@@ -209,8 +205,8 @@ if (WIN32)
+     else ()
+         file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/resources" WIN_RESOURCES_SYMLINK)
+         add_custom_command(TARGET PrusaSlicer POST_BUILD
+-            COMMAND if not exist "${WIN_RESOURCES_SYMLINK}" "(" mklink /J "${WIN_RESOURCES_SYMLINK}" "${SLIC3R_RESOURCES_DIR_WIN}" ")"
+-            COMMENT "Symlinking the resources directory into the build tree"
++            COMMAND robocopy "${SLIC3R_RESOURCES_DIR_WIN}" "${WIN_RESOURCES_SYMLINK}" /E
++            COMMENT "Copying the resources directory into the build tree"
+             VERBATIM
+         )
+         if (SLIC3R_GUI)

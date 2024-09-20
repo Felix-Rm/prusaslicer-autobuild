@@ -1,0 +1,11 @@
+upstream_repo: prusa3d/PrusaSlicer
+upstream_ref: tag:version_2.8.1
+downstream_repo: prusa3d/PrusaSlicer
+downstream_feature_branches: ''
+checkout_dir: src
+build_dir: build_macos/build
+build_dep_dir: build_macos/dep
+install_dir: build_macos/install
+build_type: Debug
+cmake_flags: ''
+environment_cmd: ''

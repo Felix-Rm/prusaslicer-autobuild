@@ -1,0 +1,20 @@
+x-common-configuation: &common-configuation
+  build:
+    context: build_environment
+    dockerfile: linux.dockerfile
+  volumes:
+    - .:/build
+  working_dir: /build
+  user: ${DOCKER_USER:-ubuntu}
+
+services:
+  autosetup:
+    <<: *common-configuation
+    image: prusaslicer-linux
+    command: python3 runner.py setup ${SETUP_CONFIG:-config.yml}
+   
+  autobuild:
+    <<: *common-configuation
+    image: prusaslicer-linux
+    command: python3 runner.py build ${SETUP_CONFIG:-config.yml}
+  

@@ -1,0 +1,11 @@
+upstream_repo: prusa3d/PrusaSlicer
+upstream_ref: tag:version_2.8.1
+downstream_repo: prusa3d/PrusaSlicer
+downstream_feature_branches: ''
+checkout_dir: src
+build_dir: build_windows/build
+build_dep_dir: build_windows/dep
+install_dir: build_windows/install
+build_type: Debug
+cmake_flags: '-DDEP_CMAKE_OPTS="-DCMAKE_POLICY_DEFAULT_CMP0057=NEW" -DDEP_CMAKE_OPTS="-DCMAKE_POLICY_DEFAULT_CMP0054=NEW"'
+environment_cmd: 'for /f "tokens=*" %i in (''vswhere.exe -latest -products * -property installationPath'') do (set "VS_INSTALL_PATH=%i" & call "%VS_INSTALL_PATH%\Common7\Tools\vsdevcmd.bat" -arch=amd64 -host_arch=amd64 -app_platform=Desktop)'

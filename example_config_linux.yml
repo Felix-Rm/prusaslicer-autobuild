@@ -1,0 +1,11 @@
+upstream_repo: prusa3d/PrusaSlicer
+upstream_ref: tag:version_2.8.1
+downstream_repo: prusa3d/PrusaSlicer
+downstream_feature_branches: ''
+checkout_dir: src
+build_dir: build_linux/build
+build_dep_dir: build_linux/dep
+install_dir: build_linux/install
+build_type: Debug
+cmake_flags: '-DDEP_WX_GTK3=ON -DSLIC3R_STATIC=ON -DSLIC3R_PCH=OFF -DSLIC3R_GTK=3'
+environment_cmd: ''

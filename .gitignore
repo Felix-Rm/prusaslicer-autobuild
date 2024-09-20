@@ -1,0 +1,6 @@
+**/.vscode
+**/.directory
+**/__pycache__
+src
+build_linux
+build_windows
