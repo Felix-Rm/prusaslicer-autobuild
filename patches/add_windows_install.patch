@@ -1,0 +1,20 @@
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index 28746cadb..8bc57fc1d 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -205,6 +205,7 @@ if (WIN32)
+                     "${wxWidgets_ROOT_DIR}/bin/WebView2Loader.dll"
+                     "${CMAKE_CURRENT_BINARY_DIR}/${CONF}/WebView2Loader.dll")
+             endif()
+         endforeach ()
++        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/libgmp-10.dll ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/libmpfr-4.dll DESTINATION ${CMAKE_INSTALL_PREFIX})
+     else ()
+         file(TO_NATIVE_PATH "${CMAKE_CURRENT_BINARY_DIR}/resources" WIN_RESOURCES_SYMLINK)
+@@ -219,6 +220,7 @@ if (WIN32)
+                 "${wxWidgets_ROOT_DIR}/bin/WebView2Loader.dll"
+                 "${CMAKE_CURRENT_BINARY_DIR}/${CONF}/WebView2Loader.dll")
+         endif()
++        install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libgmp-10.dll ${CMAKE_CURRENT_BINARY_DIR}/libmpfr-4.dll DESTINATION ${CMAKE_INSTALL_PREFIX})
+     endif ()
+ 
+     # This has to be a separate target due to the windows command line lenght limits

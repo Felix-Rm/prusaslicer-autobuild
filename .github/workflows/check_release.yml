@@ -1,0 +1,90 @@
+name: Check release
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_repo:
+        type: string
+        description: 'Upstream repository'
+        required: true
+      downstream_repo:
+        type: string
+        description: 'Downstream repository'
+        required: true
+      tag_prefix:
+        type: string
+        description: 'Prefix of the downstream release tag'
+        required: false
+        default: ''
+
+  workflow_call:
+    inputs:
+      upstream_repo:
+        type: string
+        description: 'Upstream repository'
+        required: true
+      downstream_repo:
+        type: string
+        description: 'Downstream repository'
+        required: true
+      tag_prefix:
+        type: string
+        description: 'Prefix of the downstream release tag'
+        required: false
+        default: ''
+      
+    outputs:
+      tag: 
+        description: 'Upstream release tag'
+        value: ${{ jobs.check_release.outputs.tag }}
+      name: 
+        description: 'Upstream release name'
+        value: ${{ jobs.check_release.outputs.name }}
+      body: 
+        description: 'Upstream release body'
+        value: ${{ jobs.check_release.outputs.body }}
+      pre_release: 
+        description: 'Upstream release is a pre-release'
+        value: ${{ jobs.check_release.outputs.pre_release }}
+      release_mismatch: 
+        description: 'Upstream release is different from downstream release'
+        value: ${{ jobs.check_release.outputs.release_mismatch }}
+
+jobs:
+  check_release:
+    runs-on: ubuntu-latest
+
+    outputs:
+      tag: ${{ steps.upstream_release.outputs.tag }}
+      name: ${{ steps.upstream_release.outputs.name }}
+      body: ${{ steps.upstream_release.outputs.body }}
+      pre_release: ${{ steps.upstream_release.outputs.pre_release }}
+      release_mismatch: ${{ steps.check_release.outputs.release_mismatch }}
+
+    steps:
+      - name: Get Latest Release from Upstream
+        id: upstream_release
+        run: |
+          curl -s https://api.github.com/repos/${{ inputs.upstream_repo }}/releases/latest > upstream_release.json
+          {
+            echo 'name<<$EOF'
+            cat upstream_release.json | jq -r .name
+            echo '$EOF'
+          } >> $GITHUB_OUTPUT
+          {
+            echo 'body<<$EOF'
+            cat upstream_release.json | jq -r .body
+            echo '$EOF'
+          } >> $GITHUB_OUTPUT
+          echo "tag=$(cat upstream_release.json | jq -r .tag_name)" >> $GITHUB_OUTPUT
+          echo "pre_release=$(cat upstream_release.json | jq -r .prerelease)" >> $GITHUB_OUTPUT
+
+      - name: Get Latest Release from Downstream
+        id: current_release
+        run: |
+          curl -s https://api.github.com/repos/${{ inputs.downstream_repo }}/releases/latest > current_release.json
+          echo "tag=$(cat current_release.json | jq -r .tag_name)" >> $GITHUB_OUTPUT
+       
+      - name: Check if new release is available
+        id: check_release
+        run: echo "release_mismatch=$(test ${{ inputs.tag_prefix }}${{ steps.upstream_release.outputs.tag }} != ${{ steps.current_release.outputs.tag }} && echo true || echo false)" >> $GITHUB_OUTPUT

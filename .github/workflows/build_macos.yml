@@ -1,0 +1,110 @@
+name: Build PrusaSlicer for macos
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_repo:
+        type: string
+        description: 'Upstream repository'
+        required: true
+        default: 'prusa3d/PrusaSlicer'
+      upstream_ref:
+        type: string
+        description: 'Upstream ref to rebase changes on'
+        required: true
+        default: 'master'
+      downstream_repo:
+        type: string
+        description: 'Downstream repository'
+        required: true
+        default: 'prusa3d/PrusaSlicer'
+      downstream_feature_branches:
+        type: string
+        description: 'Downstream feature branches'
+        required: false
+        default: ';'
+  workflow_call:
+    inputs:
+      upstream_repo:
+        type: string
+        description: 'Upstream repository'
+        required: true
+        default: 'prusa3d/PrusaSlicer'
+      upstream_ref:
+        type: string
+        description: 'Upstream ref to rebase changes on'
+        required: true
+        default: 'master'
+      downstream_repo:
+        type: string
+        description: 'Downstream repository'
+        required: true
+        default: 'prusa3d/PrusaSlicer'
+      downstream_feature_branches:
+        type: string
+        description: 'Downstream feature branches'
+        required: false
+        default: ';'
+      
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: Felix-Rm/prusaslicer-autobuild
+          ref: main
+
+      - name: Install build dependencies
+        run: |
+          chmod +x build_environment/setup_macos.sh
+          ./build_environment/setup_macos.sh
+
+      - name: Write config file
+        run: |
+          echo "upstream_repo: ${{ inputs.upstream_repo }}" > config.yml
+          echo "upstream_ref: ${{ inputs.upstream_ref }}" >> config.yml
+          echo "downstream_repo: ${{ inputs.downstream_repo }}" >> config.yml
+          echo "downstream_feature_branches: ${{ inputs.downstream_feature_branches }}" >> config.yml
+          echo "checkout_dir: src" >> config.yml
+          echo "build_dir: build" >> config.yml
+          echo "build_dep_dir: build_dep" >> config.yml
+          echo "install_dir: install" >> config.yml
+          echo "build_type: Release" >> config.yml
+          echo "cmake_flags: ''" >> config.yml
+          echo "environment_cmd: ''" >> config.yml
+
+      - name: Restore Cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            src
+            build
+            build_dep
+          key: autobuild-cache-macos
+
+      - name: Setup
+        run: python3 runner.py setup config.yml
+
+      - name: Build
+        run: python3 runner.py build config.yml
+
+      - name: Save Cache
+        if: always()
+        id: cache-save
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            src
+            build
+            build_dep
+          key: autobuild-cache-macos
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          path: install
+          name: PrusaSlicer-MacOS-arm64

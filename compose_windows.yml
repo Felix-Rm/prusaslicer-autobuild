@@ -1,0 +1,20 @@
+x-common-configuation: &common-configuation
+  build:
+    context: build_environment
+    dockerfile: windows.dockerfile
+  volumes:
+    - .:C:/build
+  working_dir: C:/build
+  user: ${DOCKER_USER:-ContainerUser}
+
+services:
+  autosetup:
+    <<: *common-configuation
+    image: prusaslicer-windows
+    command: python runner.py setup ${SETUP_CONFIG:-config.yml}
+
+  autobuild:
+    <<: *common-configuation
+    image: prusaslicer-windows
+    command: python runner.py build ${SETUP_CONFIG:-config.yml}
+  

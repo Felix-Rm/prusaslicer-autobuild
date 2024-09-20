@@ -1,0 +1,230 @@
+name: Autobuild
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_repo:
+        type: string
+        description: 'Upstream repository'
+        required: true
+      upstream_ref:
+        type: string
+        description: 'Upstream ref to rebase changes on'
+        required: true
+      downstream_repo:
+        type: string
+        description: 'Downstream repository'
+        required: true
+      downstream_feature_branches:
+        type: string
+        description: 'Downstream feature branches'
+        required: false
+      
+      only_if_new_release:
+        type: boolean
+        description: 'Only trigger autobuild if a new release is available'
+        required: false
+        default: false
+
+      create_release_copy:
+        type: boolean
+        description: 'Create a release with the assets'
+        required: false
+        default: false
+      release_tag_prefix:
+        type: string
+        description: 'Prefix of the downstream release tag'
+        required: false
+        default: 'autobuild_'
+      release_name_prefix:
+        type: string
+        description: 'Prefix for the release name'
+        required: false
+        default: ''
+      release_body_prefix:
+        type: string
+        description: 'Prefix for the release body'
+        required: false
+        default: ''
+
+  workflow_call:
+    inputs:
+      upstream_repo:
+        type: string
+        description: 'Upstream repository'
+        required: true
+      upstream_ref:
+        type: string
+        description: 'Upstream ref to rebase changes on'
+        required: true
+      downstream_repo:
+        type: string
+        description: 'Downstream repository'
+        required: true
+      downstream_feature_branches:
+        type: string
+        description: 'Downstream feature branches'
+        required: false
+      
+      only_if_new_release:
+        type: boolean
+        description: 'Only trigger autobuild if a new release is available'
+        required: false
+        default: false
+
+      create_release_copy:
+        type: boolean
+        description: 'Create a release with the assets'
+        required: false
+        default: false
+      release_tag_prefix:
+        type: string
+        description: 'Prefix of the downstream release tag'
+        required: false
+        default: 'autobuild_'
+      release_name_prefix:
+        type: string
+        description: 'Prefix for the release name'
+        required: false
+        default: ''
+      release_body_prefix:
+        type: string
+        description: 'Prefix for the release body'
+        required: false
+        default: ''
+
+    secrets:
+      GH_TOKEN:
+        description: 'GitHub token'
+        required: true
+
+jobs:
+  check_release:
+    uses: Felix-Rm/prusaslicer-autobuild/.github/workflows/check_release.yml@main
+    with:
+      upstream_repo: ${{ inputs.upstream_repo }}
+      downstream_repo: ${{ inputs.downstream_repo }}
+      tag_prefix: ${{ inputs.release_tag_prefix }}
+
+  check_continue:
+    runs-on: ubuntu-latest
+    needs: check_release
+
+    outputs:
+      continue: ${{ steps.check_continue.outputs.continue }}
+      build_ref: ${{ steps.check_continue.outputs.build_ref }}
+
+    steps:
+      - name: Check if autobuild should start
+        id: check_continue
+        run: | 
+          echo "continue=$(test ${{ inputs.only_if_new_release }} = false || ${{ needs.check_release.outputs.release_mismatch }} = true && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "build_ref=$(test '${{ inputs.upstream_ref }}' = 'latest:release' && echo 'tag:${{ needs.check_release.outputs.tag }}' || echo '${{inputs.upstream_ref}}')" >> $GITHUB_OUTPUT
+
+  linux_build:
+    needs: check_continue
+    if: ${{  needs.check_continue.outputs.continue == 'true' }}
+    uses: Felix-Rm/prusaslicer-autobuild/.github/workflows/build_linux.yml@main
+    with:
+      upstream_repo: ${{ inputs.upstream_repo }}
+      upstream_ref: ${{ needs.check_continue.outputs.build_ref }}
+      downstream_repo: ${{ inputs.downstream_repo }}
+      downstream_feature_branches: ${{ inputs.downstream_feature_branches }}
+
+  windows_build:
+    needs: check_continue
+    if: ${{ needs.check_continue.outputs.continue == 'true' }}
+    uses: Felix-Rm/prusaslicer-autobuild/.github/workflows/build_windows.yml@main
+    with:
+      upstream_repo: ${{ inputs.upstream_repo }}
+      upstream_ref: ${{ needs.check_continue.outputs.build_ref }}
+      downstream_repo: ${{ inputs.downstream_repo }}
+      downstream_feature_branches: ${{ inputs.downstream_feature_branches }}
+
+  macos_build:
+    needs: check_continue
+    if: ${{ needs.check_continue.outputs.continue == 'true' }}
+    uses: Felix-Rm/prusaslicer-autobuild/.github/workflows/build_macos.yml@main
+    with:
+      upstream_repo: ${{ inputs.upstream_repo }}
+      upstream_ref: ${{ needs.check_continue.outputs.build_ref }}
+      downstream_repo: ${{ inputs.downstream_repo }}
+      downstream_feature_branches: ${{ inputs.downstream_feature_branches }}
+
+  create_release:
+    runs-on: ubuntu-latest
+    needs:
+      - check_release
+      - linux_build
+      - windows_build
+      - macos_build
+    if: ${{ inputs.create_release_copy }}
+
+    steps:
+      - name: Download linux binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PrusaSlicer-Linux-x64
+          path: linux_install
+
+      - name: Download windows binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PrusaSlicer-Windows-x64
+          path: windows_install
+
+      - name: Download macos binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: PrusaSlicer-MacOS-arm64
+          path: macos_install
+
+      - name: Rezip binaries
+        run: |
+          cd linux_install && zip -r ../PrusaSlicer-Linux-x64.zip . && cd ..
+          cd windows_install && zip -r ../PrusaSlicer-Windows-x64.zip . && cd ..
+          cd macos_install && zip -r ../PrusaSlicer-MacOS-arm64.zip . && cd ..
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ inputs.release_tag_prefix }}${{ needs.check_release.outputs.tag }}
+          release_name: ${{ inputs.release_name_prefix }}${{ needs.check_release.outputs.name }}
+          body: ${{ inputs.release_body_prefix }}${{ needs.check_release.outputs.body }}
+          draft: false
+          prerelease: ${{ needs.check_release.outputs.pre_release }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Upload linux binary as asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: PrusaSlicer-Linux-x64.zip
+          asset_name: PrusaSlicer-Linux-x64.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Upload windows binary as asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: PrusaSlicer-Windows-x64.zip
+          asset_name: PrusaSlicer-Windows-x64.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Upload macos binary as asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: PrusaSlicer-MacOS-arm64.zip
+          asset_name: PrusaSlicer-MacOS-arm64.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  
