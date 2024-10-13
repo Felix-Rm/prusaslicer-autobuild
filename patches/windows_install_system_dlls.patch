@@ -1,0 +1,13 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 31cb4c0ff..479e595bb 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -630,6 +630,8 @@ endif()
+ # Resources install target, configure fhs.hpp on UNIX
+ if (WIN32)
+     install(DIRECTORY "${SLIC3R_RESOURCES_DIR}/" DESTINATION "${CMAKE_INSTALL_PREFIX}/resources")
++    set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION "./")
++    include(InstallRequiredSystemLibraries)
+ elseif (SLIC3R_FHS)
+     # CMAKE_INSTALL_FULL_DATAROOTDIR: read-only architecture-independent data root (share)
+     set(SLIC3R_FHS_RESOURCES "${CMAKE_INSTALL_FULL_DATAROOTDIR}/PrusaSlicer")
