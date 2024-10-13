@@ -61,6 +61,7 @@ jobs:
         run: |
           chmod +x build_environment/setup_linux.sh
           sudo ./build_environment/setup_linux.sh
+          sudo apt-get install -y ninja-build
 
       - name: Write config file
         run: |
@@ -73,7 +74,7 @@ jobs:
           echo "build_dep_dir: build_dep" >> config.yml
           echo "install_dir: install" >> config.yml
           echo "build_type: Release" >> config.yml
-          echo "cmake_flags: '-DDEP_WX_GTK3=ON -DSLIC3R_STATIC=ON -DSLIC3R_PCH=OFF -DSLIC3R_GTK=3'" >> config.yml
+          echo "cmake_flags: '-G Ninja -DDEP_WX_GTK3=ON -DSLIC3R_STATIC=ON -DSLIC3R_PCH=OFF -DSLIC3R_GTK=3'" >> config.yml
           echo "environment_cmd: ''" >> config.yml
 
       - name: Restore Cache
